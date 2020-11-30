@@ -2,29 +2,29 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <string.h>
+#define int long long
 
-int token;            // current token
-char *src, *old_src;  // pointer to source code string;
+int tokenchar;            // current token
+char *src, *old_src;  // pointer to source code string;    用int比较好吧？万一是汉字呢?
 int poolsize;         // default size of text/data/stack
 int line;             // line number
                                                 // (2)
 int *text,            // code                  
     *old_text,        // for dump text segment
-    *stack;           // 局部变量，函数的参数值
-char *data;           // 全局变量
+    *stack;           // ???????????
+char *data;           // ????
                                                                 // (2)
-int *pc, *bp, *sp, ax, cycle; // virtual machine registers 本虚拟机只有一个寄存器
+int *pc, *bp, *sp, ax, cycle; // virtual machine registers ???????????
 //instructions
-enum { LEA ,IMM ,JMP ,CALL,JZ  ,JNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PUSH,
+enum active { LEA ,IMM ,JMP ,CALL,JZ  ,JNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PUSH,
        OR  ,XOR ,AND ,EQ  ,NE  ,LT  ,GT  ,LE  ,GE  ,SHL ,SHR ,ADD ,SUB ,MUL ,DIV ,MOD ,
        OPEN,READ,CLOS,PRTF,MALC,MSET,MCMP,EXIT };
-       // 带有参数的指令在前，没有参数的指令在后
-       // 这种顺序的唯一作用就是在打印调试信息时更加方便   "打印调试信息"???
-
+      // ???????????????????
+       // ???????????????????????   "??????"???
 
 
 void next() {
-    token = *src++;
+    tokenchar = *src++;
     return;
 }
 
@@ -34,8 +34,8 @@ void expression(int level) {
 
 void program() {
     next();                  // get next token
-    while (token > 0) {
-        printf("token is: %c\n", token);
+    while (tokenchar > 0) {
+        printf("tokenchar is: %c\n", tokenchar);
         next();
     }
 }
@@ -44,37 +44,85 @@ void program() {
 int eval() { // do nothing yet
                                                                     // (2)
     int op, *tmp;
+    
+    
     while (1)
     {
-        if (op == IMM) {ax = *pc++;}  // 把当前指令（不是指令的地址）搁置在ax里，然后准备运行下一条指令
-        else if (op == LC) {ax = *(char *)ax;} // 根据ax里存的地址，找到那个字符存到ax里
-        else if (op == LI) {ax = *(int *)ax;} // 根据地址，找到那个int存到ax里
-        else if (op == SC) {*(char *)*sp = ax} // 一个挨一个地更新内存内容：把当前ax内的字符存入它本属于的内存地址，然后将下一格内存内容存入ax
-                                                //stack里装着一个个内存地址。sp=stack顶端抽屉，*sp意为取抽屉里内容物（内存地址）。
-        else if (op == SC) {*(char *)*sp = ax}
+        op = *pc++;
+		if (op == IMM) {ax = *pc++;}  // ?????????????????ax??????pc++??IMM??????
+        else if (op == LC) {ax = *(char *)ax;} // ??ax??????????????ax?
+        else if (op == LI) {ax = *(int *)ax;} //?????????int??ax?
+        else if (op == SC) {*(char *)*sp = ax;} // ????????????????ax????????????????????????????ax
+                                                //stack???????????sp=stack?????*sp????????????????
+        else if (op == SC) {*(char *)*sp = ax;}
         else if (op == PUSH) {*--sp = ax;}          // push the value of ax onto the stack
-        else if (op == JMP)  {pc = (int *)*pc;}     // JMP <addr> 是跳转指令。无条件地将当前的 PC 寄存器设置为指定的 <addr>。当前正在执行的指令(op)是“JMP”,pc指向下一句指令的地址
-        else if (op == JZ)   {pc = ax ? pc + 1 : (int *)*pc;}         // 当前运行代码的地址是op；op+1==pc,*op==JMP,；即将要运行的那行代码的地址是pc+1。if ax==0， then pc:=即将要运行的那行代码的地址，else pc:=
-    //  else if (op == JZ)   {pc = ax ? pc : (int *)*pc;}  如果你按原程序做，就会出现“跳一行”的现象
-    //  else if (op == JZ)   {op = *pc; pc = ax ? pc + 1 : (int *)*pc;} 非得按作者说的做也可以，但必须赶在pc+1之前，记住pc当前值
-    // 如果你发现按照作者说的做，运行居然没问题，那就说明：机器其实每次“跳转”(第1类跳转：条件JMP。第2类跳转：call)之后，都会偷偷地让op:=*(pc-1)
+        else if (op == JMP)  {pc = (int *)*pc;}     // JMP <addr> ?????????????? PC ????????? <addr>??????????(op)??JMP?,pc??????????
+        else if (op == JZ)   {pc = ax ? pc + 1 : (int *)*pc;}         // ??????????op?op+1==pc,*op==JMP,???????????????pc+1?if ax==0? then pc:=??????????????else pc:=
+    //  else if (op == JZ)   {pc = ax ? pc : (int *)*pc;}  ?????????????????????
+    //  else if (op == JZ)   {op = *pc; pc = ax ? pc + 1 : (int *)*pc;} ?????????????????pc+1?????pc???
+    // ????????????????????????????????????(?1??????JMP??2????call)?????????op:=*(pc-1)
         else if (op == JNZ)  {pc = ax ? (int *)*pc : pc + 1;}        
     //  else if (op == JNZ)  {pc = ax ? (int *)*pc : pc;} 
     //  else if (op == JNZ)  {op = *pc; pc = ax ? (int *)*pc : pc + 1;} 
         
-        else if (op == CALL) {*--sp = (int)(pc+1); pc = (int *)*pc;}           // call subroutine 当前运行：call ***，存下来的不是下一行，而是下下一行。待会儿跳回来的时候，机器偷偷地让op:=*(pc-1)
-      //else if (op == RET)  {pc = (int *)*sp++;}                              // return from subroutine;这里我们把 RET 相关的内容注释了，是因为之后我们将用 LEV 指令来代替它
+        else if (op == CALL) {*--sp = (int)(pc+1); pc = (int *)*pc;}           // call subroutine ?????call ***??????????????????????????????????op:=*(pc-1)
+      //else if (op == RET)  {pc = (int *)*sp++;}                              // return from subroutine;????? RET ?????????????????? LEV ??????
 
         else if (op == ENT)  {*--sp = (int)bp; bp = sp; sp = sp - *pc++;}      // make new stack frame  
-// 作者直接pc++了，说明“ENT <size>”这句话处于子函数中，pc已经完成跳转
+// ????pc++?????ENT <size>???????????pc??????
 
-// 现在子函数要返回了，默认pc已完成跳转。下面这句话做的事情：回收子函数的frame
-        else if (op == ADJ) {sp = sp + *pc++;} // 奇怪。。不用bp吗？？ 哦，下面用
+// ????????????pc??????????????????????frame
+        else if (op == ADJ) {sp = sp + *pc++;} // // ??????bp??? ?????
         else if (op == LEV) {sp = bp; bp = (int *)*sp++; pc = (int *)*sp++;}
     
-    ////////LEA
+        else if (op == LEA)  {ax = (int)(bp + *pc++);}     // load address for arguments.
 
+        // 运算符指令
+        else if (op == OR) {ax = *sp++ | ax; }  //但是当机器看到OR前面的数时，并不是知道要把它放入栈呀
+        else if (op == XOR) {ax = *sp++ ^ ax;}
+        else if (op == AND) {ax = *sp++ & ax;}  //按位与
+        else if (op == EQ)  {ax = *sp++ == ax;}
+        else if (op == NE)  {ax = *sp++ != ax;}
+        else if (op == LT)  {ax = *sp++ < ax;}
+        else if (op == LE)  {ax = *sp++ <= ax;}
+        else if (op == GT)  {ax = *sp++ >  ax;}
+        else if (op == GE)  {ax = *sp++ >= ax;}
+        else if (op == SHL) {ax = *sp++ << ax;}
+        else if (op == SHR) {ax = *sp++ >> ax;}
+        else if (op == ADD) {ax = *sp++ + ax;}  // 这里的add只能操作ax寄存器
+        else if (op == SUB) {ax = *sp++ - ax;}
+        else if (op == MUL) {ax = *sp++ * ax;}
+        else if (op == DIV) {ax = *sp++ / ax;}
+        else if (op == MOD) {ax = *sp++ % ax;} //取余
 
+        // 内置函数
+        else if (op == EXIT) { printf("exit(%d)", *sp); return *sp;} // 汇编语言终止
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        else if (op == OPEN) { ax = open((char *)sp[1], sp[0]); } 
+    // http://c.biancheng.net/cpp/html/238.html
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        else if (op == CLOS) { ax = close(*sp);}
+    // http://c.biancheng.net/cpp/html/229.html
+   
+   
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        else if (op == READ) { ax = read(sp[2], (char *)sp[1], *sp); }
+        // http://c.biancheng.net/cpp/html/239.html
+        
+        
+///////////////////////////////////////////////////////////////////???
+        else if (op == PRTF) { tmp = sp + pc[1]; ax = printf((char *)tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-5], tmp[-6]); } // ?????????????????????
+        else if (op == MALC) { ax = (int)malloc(*sp);} // ??????????????????????????????????????????
+        else if (op == MSET) { ax = (int)memset((char *)sp[2], sp[1], *sp);}
+        else if (op == MCMP) { ax = memcmp((char *)sp[2], (char *)sp[1], *sp);}
+
+        else 
+        {
+            printf("unknown instruction:%d\n", op);
+            return -1;
+        }
 
 
     
@@ -83,33 +131,42 @@ int eval() { // do nothing yet
     return 0;
 }
 
-int main(int argc, char **argv)
+//int main(int argc, char **argv)   //assembly file production platform
+int main()
 {
     int i, fd;
 
-    argc--;
-    argv++;
+
+
+
+    // argc--;
+    // argv++;
 
     poolsize = 256 * 1024; // arbitrary size
     line = 1;
 
-    if ((fd = open(*argv, 0)) < 0) {
-        printf("could not open(%s)\n", *argv);
-        return -1;
-    }
+    // if ((fd = open(*argv, 0)) < 0) {
+    //     printf("could not open(%s)\n", *argv);//////目前程序会输出这一行
+    //     return -1;
+    // }
 
-    if (!(src = old_src = malloc(poolsize))) {
-        printf("could not malloc(%d) for source area\n", poolsize);
-        return -1;
-    }
 
-    // read the source file
-    if ((i = read(fd, src, poolsize-1)) <= 0) {
-        printf("read() returned %d\n", i);
-        return -1;
-    }
-    src[i] = 0; // add EOF character
-    close(fd);
+    // if (!(src = old_src = malloc(poolsize))) {
+    //     printf("could not malloc(%d) for source area\n", poolsize);
+    //     return -1;
+    // }
+
+    // // read the source file
+    // if ((i = read(fd, src, poolsize-1)) <= 0) {  // (全篇，读书人/内存地址，读入字数)
+    //     printf("read() returned %d\n", i);
+    //     return -1;
+    // }
+    // src[i] = 0; // add EOF character
+    // close(fd);
+
+
+
+
 
                                                                     // (2) allocate memory for virtual machine
     if (!(text = old_text = malloc(poolsize))) {
@@ -125,13 +182,35 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    memset(text, 0, poolsize);//initiate the memory
+    memset(text, 0, poolsize);//initiate the memory =0
     memset(data, 0, poolsize);
     memset(stack, 0, poolsize);
 
-    bp = sp = (int *)((int)stack + poolsize);//SP，指针寄存器，永远指向栈顶，“stack”是水位溢出警戒线
-    ax = 0;////////////
+    bp = sp = (int *)((int)stack + poolsize);//SP
+    // int * stack points to the lowest address of its allocated space, e.g. stack==0x00010; stack++;stack==0x00014;
+    // while the first thing entering the stack should be put in the highest address.
+    ax = 0;
 
-    program();
+
+
+
+    i = 0;
+    text[i++] = IMM;
+    text[i++] = 10;
+    text[i++] = PUSH;
+    text[i++] = IMM;
+    text[i++] = 20;
+    text[i++] = ADD;
+    text[i++] = PUSH;
+    text[i++] = EXIT;  // before exit, the programme will output the top content of the stack
+    //in this programme, the "EXIT" cannot clear the stack 
+    pc = text;
+
+
+
+
+
+
+    //program();   
     return eval();
 }
