@@ -11,16 +11,15 @@ int line;             // line number
                                                 // (2)
 int *text,            // code                  
     *old_text,        // for dump text segment
-    *stack;           // ???????????
+    *stack;           
 char *data;           // ????
                                                                 // (2)
-int *pc, *bp, *sp, ax, cycle; // virtual machine registers ???????????
+int *pc, *bp, *sp, ax, cycle; // virtual machine registers 
 //instructions
 enum { LEA ,IMM ,JMP ,CALL,JZ  ,JNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PUSH,
        OR  ,XOR ,AND ,EQ  ,NE  ,LT  ,GT  ,LE  ,GE  ,SHL ,SHR ,ADD ,SUB ,MUL ,DIV ,MOD ,
-       OPEN,READ,CLOS,PRTF,MALC,MSET,MCMP,EXIT };
-      // ???????????????????
-       // ???????????????????????   "??????"???
+       OPEN,READ,CLOS,PRTF,MALC,MSET,MCMP,EXIT }; //build-in functions
+  
 
                                                                                 //(3)
 // tokens and classes (operators last and in precedence order)
@@ -34,31 +33,31 @@ enum {
 // 2. they do nothing with precedence
 
 
-// ???????????????????????????????
-int token_val;  // value of current token (mainly for number)
-int *current_id,// current parsed ID
-    *symbols;   // symble table
+// these three variables are used in next()
+int token_val;  // used in next()-recognizing number
+int *current_id,// used in next()-recognizing identifier. 
+    *symbols;   // symble table.used in next()-recognizing identifier. 
 
 // fields of identifier
-enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};//????????????????????????????????????
+enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};//attributes of the symbol table(except for the last one -- IdSize)
+// each identifier takes up in total 9 cells of the table (Token ~ BValue)
 
 
 
 
-
-
-void next() {    // (3)  
-    char *last_pos; // ???????????????????
+// (3)  
+void next() {    // when will it "return"? answer: when "while" ends. then, when will the "while" end? answer: (1)it recognizes sth (2)*src == 0, i.e. the end of the article
+    char *last_pos; // ?????????? src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
     int hash;
 
-    while (tokenchar = *src)  // while循环用来跳过：不识别的字符/空白字符
+    while (tokenchar = *src)  // while循环用来跳过：空白字符/不识别的字符
     {
         ++src;
         // parse token here
-        if (tokenchar == '\n')  // line break
+        if (tokenchar == '\n')  //------------------------- line break
         {
             ++line;
-        }
+        }   
         else if (tokenchar == '#')
         {
             // skip macro, because we will not support it
@@ -66,11 +65,10 @@ void next() {    // (3)
             {
                 src++;
             }
-        }
-        else if (  (tokenchar >='a'&& tokenchar<='z')  ||  (tokenchar >= 'A' && tokenchar <= 'Z')  ||  (tokenchar == '_')  )
-        {
-            // parse identifier
-            last_pos = src - 1; // the address of the last char
+        }    
+        else if (  (tokenchar >='a'&& tokenchar<='z')  ||  (tokenchar >= 'A' && tokenchar <= 'Z')  ||  (tokenchar == '_')  )  
+        { // --------------identifier
+            last_pos = src - 1; // the address of the first char of the identifier
             hash = tokenchar;   // the current char
 
             while ((*src >= 'a' && *src <= 'z') || (*src >= 'A' && *src <= 'Z') || (*src >= '0' && *src <= '9') || (*src == '_')) 
@@ -79,28 +77,250 @@ void next() {    // (3)
                 src++;
             }
 
-            // look for existing identifier, linear search HERE HERE HERE HERE HERE HERE HERE 
-            current_id = symbols;  // int*   ???????????????????????BUT it doesn't have value!!!
-            while (current_id[Token])
+            // look for existing identifier, linear search 
+            current_id = symbols;  // int* symbols is the address of the first char of the 
+            while (current_id[Token])// if current_id[Token] == true then the identifier might be an old one
             {
-                if (current_id[Hash] == hash && !memcmp((char *)current_id[Name], last_pos, src - last_pos))  
+                // why not: if (current_id[Hash] == hash)???????????????????????????? in case that the identifier is so long that its hash becomes saturated
+                if ((current_id[Hash] == hash) && !memcmp((char *)current_id[Name], last_pos, src - last_pos))  
                 // int memcmp (const void *s1, const void *s2, size_t n) is used to compare the top n characters of the memories pointed by s1 and s2
                 {
-
+                    tokenchar = current_id[Token];
+                    return;
                 }
                 current_id = current_id + IdSize;
             }
 
             // store new ID
-            current_id[Name] = (int)last_pos;
+            current_id[Name] = (int)last_pos;  // only store the first char of the identifier. ???????????????need another box to store the length
             current_id[Hash] = hash;
-            tokenchar = current_id[Token] = Id;
+            tokenchar = current_id[Token] = Id; 
             return;
 
+        }   
+        else if (tokenchar >= '0' && tokenchar <= '9')   // ------------------------------number dec(123) hex(0x123) oct(017) // WHAT IF "1234Z"    ???????????????
+        {
+
+            if (tokenchar > '0')   // DEC, starts with [1-9]
+            {
+                token_val = tokenchar - '0';
+                while (*src >= '0' && *src <= '9') 
+                {
+                    token_val = token_val*10 + *src++ - '0';
+                }
+            } 
+            else 
+            {
+                if (*src == 'x' || *src == 'X')   //HEX
+                { 
+                    // token = *++src;
+                    // while ((token >= '0' && token <= '9') || (token >= 'a' && token <= 'f') || (token >= 'A' && token <= 'F')) 
+                    // {
+                    //     token_val = token_val * 16 + (token & 15) + (token >= 'A' ? 9 : 0);
+                    //     token = *++src;
+                    // }
+                    ++src;
+                    int current_SlgDigit= 0;
+                    token_val = 0;
+                    while ((*src >= '0' && *src <= '9') || (*src >= 'A' && *src <= 'F') || (*src >= 'a' && *src <= 'f')) 
+                    {
+                        if (*src >= 'A' && *src <= 'F') 
+                        {
+                            current_SlgDigit = *src - 'A' + 10;
+                        }
+                        else if (*src >= 'a' && *src <= 'f')
+                        {
+                            current_SlgDigit = *src - 'a' + 10;
+                        }
+                        else
+                        {
+                            current_SlgDigit = *src - '0';
+                        }
+
+                        token_val = token_val*16 + current_SlgDigit;
+                    }
+                    
+                } 
+                else    // OCT
+                {
+                    token_val = 0;
+                    while (*src >= '0' && *src <= '7') 
+                    {
+                        token_val = token_val*8 + *src++ - '0';
+                    }
+                }
+            }
+
+            tokenchar = Num;// output of next()
+            return;
         }
+        else if (tokenchar == '/') 
+        {
+            if (*src == '/') // -------------------------------------- skip comments
+            {           
+                while (*src != 0 && *src != '\n') 
+                {
+                    ++src;
+                }
+            } 
+            else // --------------------------------------------- divide operator
+            {           
+                tokenchar = Div;
+                return;
+            }
+        }
+        else if (tokenchar == '=') // --------------------------------------------- = + - * & && | || != > >= < <=
+        {
+            // parse '==' and '='-------------------------------------------
+            if (*src == '=') 
+            {
+                src ++;
+                tokenchar = Eq;
+            } 
+            else 
+            {
+                tokenchar = Assign;
+            }
+            return;
+        }
+        else if (tokenchar == '+') 
+        {
+            // parse '+' and '++'// ------------------------------------
+            if (*src == '+') 
+            {
+                src ++;
+                tokenchar = Inc;
+            } 
+            else 
+            {
+                tokenchar = Add;
+            }
+            return;
+        }
+        else if (tokenchar == '-') 
+        {
+            // parse '-' and '--'// ------------------------------------
+            if (*src == '-') 
+            {
+                src ++;
+                tokenchar = Dec;
+            } 
+            else 
+            {
+                tokenchar = Sub;
+            }
+            return;
+        }
+        else if (tokenchar == '!') 
+        {
+            // parse '!='// ------------------------------------
+            if (*src == '=') 
+            {
+                src++;
+                tokenchar = Ne;
+            }
+            return;
+        }
+        else if (tokenchar == '<') 
+        {
+            // parse '<=', '<<' or '<'// ------------------------------------
+            if (*src == '=') 
+            {
+                src ++;
+                tokenchar = Le;
+            } 
+            else if (*src == '<')
+            {
+                src ++;
+                tokenchar = Shl; // << ???????????????????????????
+            } 
+            else 
+            {
+                tokenchar = Lt;
+            }
+            return;
+        }
+        else if (tokenchar == '>') // ------------------------------------
+        {
+            // parse '>=', '>>' or '>'
+            if (*src == '=') 
+            {
+                src ++;
+                tokenchar = Ge;
+            } 
+            else if (*src == '>') 
+            {
+                src ++;
+                tokenchar = Shr;
+            } 
+            else 
+            {
+                tokenchar = Gt;
+            }
+            return;
+        }
+        else if (tokenchar == '|') // ------------------------------------
+        {
+            // parse '|' or '||'
+            if (*src == '|') 
+            {
+                src ++;
+                tokenchar = Lor;
+            } 
+            else 
+            {
+                tokenchar = Or;
+            }
+            return;
+        }
+        else if (tokenchar == '&') // ------------------------------------
+        {
+            // parse '&' and '&&'
+            if (*src == '&') 
+            {
+                src ++;
+                tokenchar = Lan;
+            } 
+            else 
+            {
+                tokenchar = And;
+            }
+            return;
+        }
+        else if (tokenchar == '^') // ------------------------------------
+        {
+            tokenchar = Xor;
+            return;
+        }
+        else if (tokenchar == '%') // ------------------------------------
+        {
+            tokenchar = Mod;
+            return;
+        }
+        else if (tokenchar == '*') // ------------------------------------
+        {
+            tokenchar = Mul;
+            return;
+        }
+        else if (tokenchar == '[')   // for array?// ------------------------------------
+        {
+            tokenchar = Brak;
+            return;
+        }
+        else if (tokenchar == '?') // ??????????// ------------------------------------
+        {
+            tokenchar = Cond;
+            return;
+        }
+        else if (tokenchar == '~' || tokenchar == ';' || tokenchar == '{' || tokenchar == '}' || tokenchar == '(' || tokenchar == ')' || tokenchar == ']' || tokenchar == ',' || tokenchar == ':') 
+        {
+            // directly return the character as token;
+            return;
+        }
+
+
     }
-
-
+    
     return;
 }
 
@@ -111,7 +331,7 @@ void expression(int level) {
 void program() {
     next();                  // get next token
     while (tokenchar > 0) {
-        printf("tokenchar is: %c\n", tokenchar);
+        printf("tokenchar is: %c\n", tokenchar); // changes may happen here: tokenchar will be stored into the varialble "text"
         next();
     }
 }
@@ -125,15 +345,14 @@ int eval() { // do nothing yet
     while (1)
     {
         op = *pc++;
-		if (op == IMM) {ax = *pc++;}  // ?????????????????ax??????pc++??IMM??????
-        else if (op == LC) {ax = *(char *)ax;} // ??ax??????????????ax?
-        else if (op == LI) {ax = *(int *)ax;} //?????????int??ax?
-        else if (op == SC) {*(char *)*sp = ax;} // ????????????????ax????????????????????????????ax
-                                                //stack???????????sp=stack?????*sp????????????????
+		if (op == IMM) {ax = *pc++;}  // put *pc into ax
+        else if (op == LC) {ax = *(char *)ax;} // put the char who lives in the address into ax
+        else if (op == LI) {ax = *(int *)ax;} //put the int who lives in the address into ax
+        else if (op == SC) {*(char *)*sp = ax;} // save the char value in the ax onto the stack                                        
         else if (op == SC) {*(char *)*sp = ax;}
-        else if (op == PUSH) {*--sp = ax;}          // push the value of ax onto the stack
-        else if (op == JMP)  {pc = (int *)*pc;}     // JMP <addr> ?????????????? PC ????????? <addr>??????????(op)??JMP?,pc??????????
-        else if (op == JZ)   {pc = ax ? pc + 1 : (int *)*pc;}         // ??????????op?op+1==pc,*op==JMP,???????????????pc+1?if ax==0? then pc:=??????????????else pc:=
+        else if (op == PUSH) {*--sp = ax;}          // put the value of ax onto the stack
+        else if (op == JMP)  {pc = (int *)*pc;}     // JMP <addr>. let pc jump to the address which is saved in <addr> (note: *pc == <addr>)
+        else if (op == JZ)   {pc = ax ? pc + 1 : (int *)*pc;}   // ??????????op?op+1==pc,*op==JMP,???????????????pc+1?if ax==0? then pc:=??????????????else pc:=
     //  else if (op == JZ)   {pc = ax ? pc : (int *)*pc;}  ?????????????????????
     //  else if (op == JZ)   {op = *pc; pc = ax ? pc + 1 : (int *)*pc;} ?????????????????pc+1?????pc???
     // ????????????????????????????????????(?1??????JMP??2????call)?????????op:=*(pc-1)
@@ -188,9 +407,9 @@ int eval() { // do nothing yet
         // http://c.biancheng.net/cpp/html/239.html
         
         
-///////////////////////////////////////////////////////////////////???
-        else if (op == PRTF) { tmp = sp + pc[1]; ax = printf((char *)tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-5], tmp[-6]); } // ?????????????????????
-        else if (op == MALC) { ax = (int)malloc(*sp);} // ??????????????????????????????????????????
+//build-in functions
+        else if (op == PRTF) { tmp = sp + pc[1]; ax = printf((char *)tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-5], tmp[-6]); } 
+        else if (op == MALC) { ax = (int)malloc(*sp);} 
         else if (op == MSET) { ax = (int)memset((char *)sp[2], sp[1], *sp);}
         else if (op == MCMP) { ax = memcmp((char *)sp[2], (char *)sp[1], *sp);}
 
@@ -206,12 +425,15 @@ int eval() { // do nothing yet
 
     return 0;
 }
+//                          (3)
+// types of variable/function
+enum {CHAR, INT, PTR};
+int * idmain; // the 'main' function  -------(3)
 
 //int main(int argc, char **argv)   //assembly file production platform
 int main()
 {
     int i, fd;
-
 
 
 
@@ -227,10 +449,45 @@ int main()
     // }
 
 
-    // if (!(src = old_src = malloc(poolsize))) {
-    //     printf("could not malloc(%d) for source area\n", poolsize);
-    //     return -1;
-    // }
+    if (!(src = old_src = malloc(poolsize))) {
+        printf("could not malloc(%d) for source area\n", poolsize);
+        return -1;
+    }
+
+
+
+
+
+
+    // add keywords to symbol table------------------ (3)
+    src = "char else enum if int return sizeof while "
+        "open read close printf malloc memset memcmp exit void main";
+    i = Char;
+    while (i <= While) // we are now in the main-function, the symbol table is still empty.
+    {
+        next(); // src will point to a "white space" when next() returns
+        // thanks to the "while loop", when *src== white space, next() will continue rather than return
+        current_id[Token] = i++;
+    }
+
+    // add library to symbol table ////////////////////// HERE HERE HERE HERE HERE
+    i = OPEN;
+    while (i <= EXIT) 
+    {
+        next();
+        current_id[Class] = Sys;
+        current_id[Type] = INT;
+        current_id[Value] = i++;
+    }
+
+    next(); current_id[Token] = Char; // handle void type
+    next(); idmain = current_id; // keep track of main  ??????????????????????????????????????
+
+
+
+
+
+
 
     // // read the source file
     // if ((i = read(fd, src, poolsize-1)) <= 0) {  // (全篇，读书人/内存地址，读入字数)
@@ -244,49 +501,56 @@ int main()
 
 
 
-                                                                    // (2) allocate memory for virtual machine
-    if (!(text = old_text = malloc(poolsize))) {
-        printf("could not malloc(%d) for text area\n", poolsize);
+
+    //                                                                 // (2) allocate memory for virtual machine
+    if (!(symbols = malloc(poolsize))) 
+    {
+        printf("could not malloc(%d) for symbol table\n", poolsize);
         return -1;
     }
-    if (!(data = malloc(poolsize))) {
-        printf("could not malloc(%d) for data area\n", poolsize);
-        return -1;
-    }
-    if (!(stack = malloc(poolsize))) {
-        printf("could not malloc(%d) for stack area\n", poolsize);
-        return -1;
-    }
+    // if (!(text = old_text = malloc(poolsize))) {
+    //     printf("could not malloc(%d) for text area\n", poolsize);
+    //     return -1;
+    // }
+    // if (!(data = malloc(poolsize))) {
+    //     printf("could not malloc(%d) for data area\n", poolsize);
+    //     return -1;
+    // }
+    // if (!(stack = malloc(poolsize))) {
+    //     printf("could not malloc(%d) for stack area\n", poolsize);
+    //     return -1;
+    // }
 
-    memset(text, 0, poolsize);//initiate the memory =0
-    memset(data, 0, poolsize);
-    memset(stack, 0, poolsize);
+      memset(symbols, 0, poolsize);
+    // memset(text, 0, poolsize);//initiate the memory =0
+    // memset(data, 0, poolsize);
+    // memset(stack, 0, poolsize);
 
-    bp = sp = (int *)((int)stack + poolsize);//SP
-    // int * stack points to the lowest address of its allocated space, e.g. stack==0x00010; stack++;stack==0x00014;
-    // while the first thing entering the stack should be put in the highest address.
-    ax = 0;
-
-
-
-
-    i = 0;
-    text[i++] = IMM;
-    text[i++] = 10;
-    text[i++] = PUSH;
-    text[i++] = IMM;
-    text[i++] = 20;
-    text[i++] = ADD;
-    text[i++] = PUSH;
-    text[i++] = EXIT;  // before exit, the programme will output the top content of the stack
-    //in this programme, the "EXIT" cannot clear the stack 
-    pc = text;
+    // bp = sp = (int *)((int)stack + poolsize);//SP
+    // // int * stack points to the lowest address of its allocated space, e.g. stack==0x00010; stack++;stack==0x00014;
+    // // while the first thing entering the stack should be put in the highest address.
+    // ax = 0;
 
 
 
 
+    // i = 0;
+    // text[i++] = IMM;
+    // text[i++] = 10;
+    // text[i++] = PUSH;
+    // text[i++] = IMM;
+    // text[i++] = 20;
+    // text[i++] = ADD;
+    // text[i++] = PUSH;
+    // text[i++] = EXIT;  // before exit, the programme will output the top content of the stack
+    // //in this programme, the "EXIT" cannot clear the stack 
+    // pc = text;
+    // return eval();
 
 
-    //program();   
-    return eval();
+
+
+
+    program();   
+    return 0;
 }
