@@ -26,8 +26,8 @@ enum { LEA ,IMM ,JMP ,CALL,JZ  ,JNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PUSH,
 enum {
   Num = 128, Fun, Sys, Glo, Loc, Id,
   Char, Else, Enum, If, Int, Return, Sizeof, While,
-  Assign, Cond, Lor, Lan, Or, Xor, And, Eq, Ne, Lt, Gt, Le, Ge, Shl, Shr, Add, Sub, Mul, Div, Mod, Inc, Dec, Brak
-}; // Some charactors, such as "[" and "~", are not included because they themselves can be a token.
+  Assign, Cond, Lor, Lan, Or, Xor, And, Eq, Ne, Lt, Gt, Le, Ge, Shl, Shr, Add, Sub, Mul, Div, Mod, Inc, Dec, Brak}; 
+// Some charactors, such as "[" and "~", are not included because they themselves can be a token.
 // the reason why we do not assign special tokens for "[" and "~" are:
 // 1. the are single-character, not like "=="
 // 2. they do nothing with precedence
@@ -47,7 +47,7 @@ enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};//at
 
 // (3)  
 void next() {    // when will it "return"? answer: when "while" ends. then, when will the "while" end? answer: (1)it recognizes sth (2)*src == 0, i.e. the end of the article
-    char *last_pos; // ?????????? src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
+    char *last_pos; //  src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
     int hash;
 
     while (tokenchar = *src)  // while循环用来跳过：空白字符/不识别的字符
@@ -81,7 +81,7 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
             current_id = symbols;  // int* symbols is the address of the first char of the 
             while (current_id[Token])// if current_id[Token] == true then the identifier might be an old one
             {
-                // why not: if (current_id[Hash] == hash)???????????????????????????? in case that the identifier is so long that its hash becomes saturated
+                // why not: if (current_id[Hash] == hash)?????????? in case that the identifier is so long that its hash becomes saturated?
                 if ((current_id[Hash] == hash) && !memcmp((char *)current_id[Name], last_pos, src - last_pos))  
                 // int memcmp (const void *s1, const void *s2, size_t n) is used to compare the top n characters of the memories pointed by s1 and s2
                 {
@@ -92,13 +92,14 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
             }
 
             // store new ID
-            current_id[Name] = (int)last_pos;  // only store the first char of the identifier. ???????????????need another box to store the length
-            current_id[Hash] = hash;
             tokenchar = current_id[Token] = Id; 
+            current_id[Hash] = hash;
+            current_id[Name] = (int)last_pos;  // only store the first char of the identifier. ??????????need another box to store the length
+                 
             return;
 
         }   
-        else if (tokenchar >= '0' && tokenchar <= '9')   // ------------------------------number dec(123) hex(0x123) oct(017) // WHAT IF "1234Z"    ???????????????
+        else if (tokenchar >= '0' && tokenchar <= '9')   // ------------------------------number dec(123) hex(0x123) oct(017) // WHAT IF "1234ZABC": it is the same as "1234 ZABC"
         {
 
             if (tokenchar > '0')   // DEC, starts with [1-9]
@@ -232,7 +233,7 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
             else if (*src == '<')
             {
                 src ++;
-                tokenchar = Shl; // << ???????????????????????????
+                tokenchar = Shl; // << ??????????
             } 
             else 
             {
@@ -467,21 +468,23 @@ int main()
     {
         next(); // src will point to a "white space" when next() returns
         // thanks to the "while loop", when *src== white space, next() will continue rather than return
-        current_id[Token] = i++;
+        current_id[Token] = i++; // for common identifiers, current_id[Token] = Id, while for key words, current_id[Token] = KeyWord
     }
 
-    // add library to symbol table ////////////////////// HERE HERE HERE HERE HERE
+    // add library to symbol table ////////////////////// 
     i = OPEN;
     while (i <= EXIT) 
     {
-        next();
-        current_id[Class] = Sys;
-        current_id[Type] = INT;
-        current_id[Value] = i++;
+        next(); 
+        current_id[Class] = Sys;// ??????????
+        current_id[Type] = INT;// ??????????
+        current_id[Value] = i++;// ??????????
     }
 
     next(); current_id[Token] = Char; // handle void type
-    next(); idmain = current_id; // keep track of main  ??????????????????????????????????????
+    next(); idmain = current_id; 
+    // when next() is running, current_id will traverse itself until point to a new black space.
+    // the following space will be used for identifiers running in user's functions. // keep track of main 
 
 
 
