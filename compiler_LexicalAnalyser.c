@@ -79,7 +79,7 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
 
             // look for existing identifier, linear search 
             current_id = symbols;  // int* symbols is the address of the first char of the 
-            while (current_id[Token])// if current_id[Token] == true then the identifier might be an old one
+            while (current_id[0])// if current_id[Token] == true then the identifier might be an old one
             {
                 // why not: if (current_id[Hash] == hash)?????????? in case that the identifier is so long that its hash becomes saturated?
                 if ((current_id[Hash] == hash) && !memcmp((char *)current_id[Name], last_pos, src - last_pos))  
@@ -139,6 +139,7 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
                         }
 
                         token_val = token_val*16 + current_SlgDigit;
+                        ++src;
                     }
                     
                 } 
@@ -332,7 +333,7 @@ void expression(int level) {
 void program() {
     next();                  // get next token
     while (tokenchar > 0) {
-        printf("tokenchar is: %c\n", tokenchar); // changes may happen here: tokenchar will be stored into the varialble "text"
+        printf("tokenchar is: %d\n", tokenchar); // changes may happen here: tokenchar will be stored into the varialble "text"
         next();
     }
 }
@@ -450,14 +451,13 @@ int main()
     // }
 
 
-    if (!(src = old_src = malloc(poolsize))) {
-        printf("could not malloc(%d) for source area\n", poolsize);
+
+    if (!(symbols = malloc(poolsize))) 
+    {
+        printf("could not malloc(%d) for symbol table\n", poolsize);
         return -1;
     }
-
-
-
-
+      memset(symbols, 0, poolsize);
 
 
     // add keywords to symbol table------------------ (3)
@@ -489,7 +489,13 @@ int main()
 
 
 
-
+	src = "0x1Ab12 * (8+  2  )/012  -6";
+//    if (!(src = old_src = malloc(poolsize))) 
+//	{
+//        printf("could not malloc(%d) for source area\n", poolsize);
+//        return -1;
+//    }
+    // memset(src, 0, poolsize);  //this sentence is added by myself
 
 
     // // read the source file
@@ -502,15 +508,8 @@ int main()
 
 
 
-
-
-
     //                                                                 // (2) allocate memory for virtual machine
-    if (!(symbols = malloc(poolsize))) 
-    {
-        printf("could not malloc(%d) for symbol table\n", poolsize);
-        return -1;
-    }
+
     // if (!(text = old_text = malloc(poolsize))) {
     //     printf("could not malloc(%d) for text area\n", poolsize);
     //     return -1;
@@ -524,7 +523,6 @@ int main()
     //     return -1;
     // }
 
-      memset(symbols, 0, poolsize);
     // memset(text, 0, poolsize);//initiate the memory =0
     // memset(data, 0, poolsize);
     // memset(stack, 0, poolsize);
@@ -552,7 +550,7 @@ int main()
 
 
 
-
+    
 
     program();   
     return 0;
