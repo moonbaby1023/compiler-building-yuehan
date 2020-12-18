@@ -3,12 +3,12 @@
 #include <memory.h>
 #include <string.h>
 #define int long long
-//123456
+
 int tokenchar;            // current tokenchar
 int token;
-char *src, *old_src;  // pointer to source code string;    用int比较好吧？万一是汉字呢?
+char *src, *old_src;  // pointer to source code string;    
 int poolsize;         // default size of text/data/stack
-int line;             // line number
+int line, col;             // count how many lines&columns have been parsed
                                                 // (2)
 int *text,            // code                  
     *old_text,        // for dump text segment
@@ -48,16 +48,19 @@ enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};//at
 
 // (3)  
 void next() {    // when will it "return"? answer: when "while" ends. then, when will the "while" end? answer: (1)it recognizes sth (2)*src == 0, i.e. the end of the article
-    char *last_pos; //  src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
+     // the business about "forced exit because of unknown charactor" is done by GrammarPaser   
+	char *last_pos; //  src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
     int hash;
 
     while (tokenchar = *src)  // while循环用来跳过：空白字符/不识别的字符
     {
-        ++src;
+        ++col;
+		++src;
         // parse token here
         if (tokenchar == '\n')  //------------------------- line break
         {
             ++line;
+            col = 0;
         }   
         else if (tokenchar == '#')
         {
@@ -150,7 +153,7 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
                 }
             }
 
-            //tokenchar = Num;
+            tokenchar = Num;
             token = Num;// output of next()
             return;
         }
@@ -342,27 +345,104 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
             return;
         }
 
-
     }
     
     return;
+}
+
+void match(int expectedChar)
+{
+	if (tokenchar != expectedChar)
+	{
+		printf("------error in (line %d, col %d): --------\n", line, col);
+		printf("expected tokenchar: %d(%c), but got: %d(%c)\n", expectedChar, expectedChar, tokenchar,tokenchar);
+		exit(-1); // main()is forced to stop
+	}
+	
+	next();
 }
 
 int expr();
 
 int factor()
 {
-	
+	int value = 0;
+	if (tokenchar == '(')
+	{
+		match('(');
+		value = expr();
+		match(')');
+	}
+	else
+	{
+		value = token_val;
+		match(Num); // see if the tokenchar is a number, if not, the main() will be forced to exit
+	}
+	return value;
+}
+
+int term_doMulDiv(int longValue)
+{
+	if (tokenchar == '*')
+	{
+		match('*');
+		longValue = longValue * factor();
+		return term_doMulDiv(longValue);
+	}
+	else if (tokenchar == '/')
+	{
+		match('/');
+		longValue = longValue / factor();
+		return term_doMulDiv(longValue);
+	}
+	else
+	{
+		return longValue;	
+	}
+}
+
+int term()
+{
+	int longValue = factor();
+	return term_doMulDiv(longValue);
+}
+
+int expr_doAddSub(int longValue)
+{
+	if (tokenchar == '+')
+	{
+		match('+');
+		longValue = longValue + term();
+		return expr_doAddSub(longValue);
+	}
+	else if (tokenchar == '-')
+	{
+		match('-');
+		longValue = longValue - term();
+		return expr_doAddSub(longValue);
+	}
+	else
+	{
+		return longValue;
+	}
+}
+
+int expr()
+{
+	int longValue = term();
+	return expr_doAddSub(longValue);
 }
 
 void program() 
 {
-    next();                  // get next token
-    while (tokenchar > 0) {
-        // this is where the parser starts to work
-        printf("tokenchar is: %d\n", tokenchar); // changes may happen here: tokenchar will be stored into the varialble "text"
-        next();
+    next();                  // get next tokenchar
+    while (tokenchar > 0)
+    {
+        int caculatorR = expr();
+        printf("result = %d\n", caculatorR);
+        // the calculator do not have to consider EOF, the "while-loop" will  
     }
+
 }
 
 
@@ -470,8 +550,9 @@ int main()
     // argc--;
     // argv++;
 
-    poolsize = 256 * 1024; // arbitrary size
+    poolsize = 256 * 1024; // arbitrary size, set the size of 
     line = 1;
+    col = 0;
 
     // if ((fd = open(*argv, 0)) < 0) {
     //     printf("could not open(%s)\n", *argv);//////目前程序会输出这一行
@@ -517,7 +598,8 @@ int main()
 
 
 
-	src = "0x1Ab12 * (8+  2  )/012  -6";
+	//src = "0x1Ab12 * (8+  2  )/012  -6";
+    src = "(1 + 3+11)*12/(5+1)";
 //    if (!(src = old_src = malloc(poolsize))) 
 //	{
 //        printf("could not malloc(%d) for source area\n", poolsize);
@@ -579,7 +661,8 @@ int main()
 
 
     
-
+    line = 1;
+    col = 0;
     program();   
     return 0;
 }
