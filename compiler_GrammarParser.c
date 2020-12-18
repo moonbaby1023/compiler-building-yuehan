@@ -3,7 +3,7 @@
 #include <memory.h>
 #include <string.h>
 #define int long long
-//123
+//123456
 int tokenchar;            // current tokenchar
 int token;
 char *src, *old_src;  // pointer to source code string;    用int比较好吧？万一是汉字呢?
