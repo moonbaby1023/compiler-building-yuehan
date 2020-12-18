@@ -47,16 +47,16 @@ enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};//at
 
 // (3)  
 void next() {    // when will it "return"? answer: when "while" ends. then, when will the "while" end? answer: (1)it recognizes sth (2)*src == 0, i.e. the end of the article
-    char *last_pos; //  src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
+ // the business about "forced exit because of unknown charactor" is done by GrammarPaser   
+	char *last_pos; //  src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
     int hash;
-
     while (tokenchar = *src)  // while循环用来跳过：空白字符/不识别的字符
     {
         ++src;
         // parse token here
         if (tokenchar == '\n')  //------------------------- line break
         {
-            ++line;
+            ++line;            
         }   
         else if (tokenchar == '#')
         {
