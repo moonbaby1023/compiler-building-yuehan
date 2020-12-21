@@ -599,7 +599,7 @@ int main()
 
 
 	//src = "0x1Ab12 * (8+  2  )/012  -6";
-    src = "(1 + 3+11)*12/(5+1)";
+    src = "1+2+3*4";
 //    if (!(src = old_src = malloc(poolsize))) 
 //	{
 //        printf("could not malloc(%d) for source area\n", poolsize);
