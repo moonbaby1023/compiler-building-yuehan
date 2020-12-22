@@ -413,10 +413,11 @@ struct multiOutput factor()
   
 	if (token == '(')
 	{
-		recordToken();
+		//recordToken();
         match('(');        
 		factorOut.value = expr();
-        recordToken();
+        
+        //recordToken();
 		match(')');        
 	}
 	else
@@ -442,7 +443,7 @@ int term_doMulDiv(int longValue, int leftBracket)
         // add ( at leftBracket
         addMem2record(leftBracket, '(', 0);
         // add ) at end
-        addMem2record(nextEmpty, ')', 0);
+        addMem2record(nextEmpty, ')', 0);// first add ) then take the tail )
 
 		return term_doMulDiv(longValue, leftBracket);
 	}
@@ -707,7 +708,7 @@ int main()
 
 
 	//src = "0x1Ab12 * (8+  2  )/012  -6";
-    src = "(25*10)*3";
+    src = "(25-10)*3";
 //    if (!(src = old_src = malloc(poolsize))) 
 //	{
 //        printf("could not malloc(%d) for source area\n", poolsize);
