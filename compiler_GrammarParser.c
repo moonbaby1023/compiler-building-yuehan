@@ -153,7 +153,7 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
                 }
             }
 
-            tokenchar = Num;
+            //tokenchar = Num;// try delate tokenchar
             token = Num;// output of next()
             return;
         }
@@ -352,7 +352,7 @@ void next() {    // when will it "return"? answer: when "while" ends. then, when
 
 void match(int expectedChar)
 {
-	if (tokenchar != expectedChar)
+	if (token != expectedChar)
 	{
 		printf("------error in (line %d, col %d): --------\n", line, col);
 		printf("expected tokenchar: %d(%c), but got: %d(%c)\n", expectedChar, expectedChar, tokenchar,tokenchar);
@@ -367,7 +367,7 @@ int expr();
 int factor()
 {
 	int value = 0;
-	if (tokenchar == '(')
+	if (token == '(')
 	{
 		match('(');
 		value = expr();
@@ -383,15 +383,15 @@ int factor()
 
 int term_doMulDiv(int longValue)
 {
-	if (tokenchar == '*')
+	if (token == Mul)
 	{
-		match('*');
+		match(Mul);
 		longValue = longValue * factor();
 		return term_doMulDiv(longValue);
 	}
-	else if (tokenchar == '/')
+	else if (token == Div)
 	{
-		match('/');
+		match(Div);
 		longValue = longValue / factor();
 		return term_doMulDiv(longValue);
 	}
@@ -409,15 +409,15 @@ int term()
 
 int expr_doAddSub(int longValue)
 {
-	if (tokenchar == '+')
+	if (token == Add)
 	{
-		match('+');
+		match(Add);
 		longValue = longValue + term();
 		return expr_doAddSub(longValue);
 	}
-	else if (tokenchar == '-')
+	else if (token == Sub)
 	{
-		match('-');
+		match(Sub);
 		longValue = longValue - term();
 		return expr_doAddSub(longValue);
 	}
@@ -437,7 +437,7 @@ void program()
 {
     next();                  // get next tokenchar
     while (tokenchar > 0)
-    {
+    {       
         int caculatorR = expr();
         printf("result = %d\n", caculatorR);
         // the calculator do not have to consider EOF, the "while-loop" will  
