@@ -16,7 +16,7 @@ char *data;           // ????
                                                                 // (2)
 int *pc, *bp, *sp, ax, cycle; // virtual machine registers ???????????
 //instructions
-enum active { LEA ,IMM ,JMP ,CALL,JZ  ,JNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PUSH,
+enum { LEA ,IMM ,JMP ,CALL,JZ  ,JNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PUSH,
        OR  ,XOR ,AND ,EQ  ,NE  ,LT  ,GT  ,LE  ,GE  ,SHL ,SHR ,ADD ,SUB ,MUL ,DIV ,MOD ,
        OPEN,READ,CLOS,PRTF,MALC,MSET,MCMP,EXIT };
       // ???????????????????
@@ -139,8 +139,8 @@ int main()
 
 
 
-    // argc--;
-    // argv++;
+    // argc--;  // length of your commands
+    // argv++; // content of your commands
 
     poolsize = 256 * 1024; // arbitrary size
     line = 1;
