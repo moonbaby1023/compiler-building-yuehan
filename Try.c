@@ -3,36 +3,21 @@
 
 int main()
 {
+//printf("ascii of 0 is %d\n", '0');
+//printf("ascii of 9 is %d\n", '9');
+//printf("ascii of A is %d\n", 'A');
+//printf("ascii of Z is %d\n", 'Z');
+//printf("ascii of a is %d\n", 'a');
+//printf("ascii of z is %d\n", 'z');
+//printf("ascii of _ is %d\n", '_');
+long long a = 1;
+int i = 0;
+for (i = 0; i<63; i++)
+{
+	a = a*2;
+}
+printf("a = %lld\n", a);
 
-
-FILE *fp = NULL; 
-int i;
-char *filepath = "./files/test.txt";
-char * src;
-int poolsize = 1024;
-
- if (  (fp = fopen(filepath, "r")  ) == NULL) 
- {
-     printf("could not open(%s)\n", filepath);
-     return -1;
- }
-
- 
- if (!(src = malloc(poolsize))) 
- {
-     printf("could not malloc(%d) for source area\n", poolsize);
-     return -1;
- }
- 
- if (  (i = fread(src, sizeof(char), poolsize-1, fp)) <= 0) 
- {  // (全篇，读书人/内存地址，读入字数)
-     printf("read() returned %d\n", i);
-     return -1;
- }
- src[i] = 0; // add EOF character
- close(fp);
-
-printf("%s", src);
 }
 
 

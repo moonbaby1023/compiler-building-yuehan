@@ -22,8 +22,6 @@ int calculatorOutput[128];
 char isNum[128];
 int nextEmpty = 0;
 
-// ----------types of variable
-enum {CHAR, INT, PTR};
 int * idmain; // the 'main' function  -------(3)
 
 // these three variables are used in next()
@@ -32,19 +30,30 @@ int *current_id,// used in next()-recognizing identifier.
     *symbols;   // symble table.used in next()-recognizing identifier. 
 
 // ----------fields of the identifier library
-enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};//attributes of the symbol table(except for the last one -- IdSize)
+enum {IdOrKey, Hash, Name, SizeOfId, Type, Class, Value, BType, BClass, BValue, IdSize};//attributes of the symbol table(except for the last one -- IdSize)
 // each identifier takes up in total 9 cells of the table (Token ~ BValue)
 
 // ----------types of tokens (operators last and in precedence order)
 enum {
-  Num = 128, Fun, Sys, Glo, Loc, Id,
-  Char, Else, Enum, If, Int, Return, Sizeof, While,
+  Num = 128, Ident,
+  Int, Char, Struct, Void, 
+  If, Else, While, For, Break, New, Delete, Return, Extern, 
   Assign, Cond, Lor, Lan, Or, Xor, And, Eq, Ne, Lt, Gt, Le, Ge, Shl, Shr, Add, Sub, Mul, Div, Mod, Inc, Dec, Brak}; 
 // Some charactors, such as "[" and "~", are not included because they themselves can be a token.
 // the reason why we do not assign special tokens for "[" and "~" are:
 // 1. the are single-character, not like "=="
 // 2. they do nothing with precedence
 
+int maxOne(int a, int b)
+{
+    if (a >= b)
+        {return a;}
+    else
+    {
+        {return b;}
+    }
+    
+}
  
 void next() 
 {    // when will it "return"? answer: when "while" ends. then, when will the "while" end? answer: (1)it recognizes sth (2)*src == 0, i.e. the end of the article
@@ -57,12 +66,12 @@ void next()
         ++col;
 		++src;
         // parse token here
-        if (tokenchar == '\n')  //------------------------- line break
+        if (tokenchar == '\n')  //------------------------- a new line will start
         {
             ++line;
             col = 0;
         }
-        else if ((tokenchar == 0x09) || (tokenchar == 0x20) || (tokenchar == 0xD))
+        else if ( (tokenchar == 0x09) || (tokenchar == 0x20) || (tokenchar == 0xD) )  // ---------- whitespace
         {
             ;
         }
@@ -74,38 +83,70 @@ void next()
                 src++;
             }
         }    
-        else if (  (tokenchar >='a'&& tokenchar<='z')  ||  (tokenchar >= 'A' && tokenchar <= 'Z')  ||  (tokenchar == '_')  )  
-        { // --------------identifier
+        else if (tokenchar == '/') 
+        {
+            if (*src == '/') // --------------------------------------  single line comment
+            {           
+                while (*src != 0 && *src != '\n') 
+                {
+                    ++src;
+                }
+            } 
+            else if (*src == '*')// --------------------------------------  multiline comment
+            {
+            	char endMultiComment = 0;
+            	src++;
+				while ((*src != 0)   &&  (endMultiComment == 0)) 
+                {
+                    if (*src == '*')
+                    {
+                    	src++;
+                    	if (*src == '/')
+                    	{
+                    		endMultiComment = 1;
+						}
+					}
+					src++;
+                }
+			}
+			else // --------------------------------------------- divide operator
+            {           
+                //tokenchar = Div;
+                token = Div;
+                return;
+            }
+        }
+		else if (  (tokenchar >='a'&& tokenchar<='z')  ||  (tokenchar >= 'A' && tokenchar <= 'Z')  ||  (tokenchar == '_')  )  
+        { // --------------identifiers or identifiers->keywords
             last_pos = src - 1; // the address of the first char of the identifier
-            hash = tokenchar;   // the current char
+            hash = tokenchar;  
 
             while ((*src >= 'a' && *src <= 'z') || (*src >= 'A' && *src <= 'Z') || (*src >= '0' && *src <= '9') || (*src == '_')) 
             {
-                hash = hash * 147 + *src; // the so called "linear search". hash value of the current char
+                //hash = hash * 147 + *src; // each different identifier represents a different value, "hash" ; 
+                // '0'=48  '9'=57 'A'=65 'Z'=90 '_'=95 'a'=97 'z'=122
+                // No!!!! hash only support the identifier whose size is <=9. Otherwise, the hash value will saturate :-(
                 src++;
             }
 
-            // look for existing identifier, linear search 
-            current_id = symbols;  // int* symbols is the address of the first char of the 
-            while (current_id[0])// if current_id[Token] == true then the identifier might be an old one
+            // look for existing identifier, i.e. linear search 
+            current_id = symbols;  // record the information of each identifier into the library:int * symbols
+            while (current_id[IdOrKey])// if current_id[IdOrKey] == 0 then the identifier is a new comer
             {
-                // why not: if (current_id[Hash] == hash)?????????? in case that the identifier is so long that its hash becomes saturated?
-                if ((current_id[Hash] == hash) && !memcmp((char *)current_id[Name], last_pos, src - last_pos))  
+                if (   !memcmp((char *)current_id[Name], last_pos, maxOne(current_id[SizeOfId], src - last_pos))   )
                 // int memcmp (const void *s1, const void *s2, size_t n) is used to compare the top n characters of the memories pointed by s1 and s2
+                // maxOne() is used to solve this circumstance: the old existing Ident is "abcde", and the new one is "abc"
                 {
-                    //tokenchar = current_id[Token];
-                    token = current_id[Token];
+                    token = current_id[IdOrKey];
                     return;
                 }
                 current_id = current_id + IdSize;
             }
 
             // store new ID
-            token = current_id[Token] = Id;
-            //tokenchar = current_id[Token] = Id;             
-            current_id[Hash] = hash;
-            current_id[Name] = (int)last_pos;  // only store the first char of the identifier. ??????????need another box to store the length
-                 
+            token = current_id[IdOrKey] = Ident;          
+            current_id[Name] = (int)last_pos;  // stores the position of the first char of the identifier
+            current_id[SizeOfId] = src - last_pos;// store how many character this identifier has
             return;
 
         }   
@@ -161,7 +202,7 @@ void next()
             token = Num;// output of next()
             return;
         }
-        else if (tokenchar == '\'')
+        else if (tokenchar == '\'') // ---------- single char
         {
             token = Char;
             token_val = *src++;
@@ -175,38 +216,6 @@ void next()
                 exit(-1);
             }
             
-        }
-        else if (tokenchar == '/') 
-        {
-            if (*src == '/') // -------------------------------------- skip comments
-            {           
-                while (*src != 0 && *src != '\n') 
-                {
-                    ++src;
-                }
-            } 
-            else // --------------------------------------------- divide operator
-            {           
-                //tokenchar = Div;
-                token = Div;
-                return;
-            }
-        }
-        else if (tokenchar == '=') // --------------------------------------------- = + - * & && | || != > >= < <=
-        {
-            // parse '==' and '='-------------------------------------------
-            if (*src == '=') 
-            {
-                src ++;
-                //tokenchar = Eq;
-                token = Eq;
-            } 
-            else 
-            {
-                //tokenchar = Assign;
-                token = Assign;
-            }
-            return;
         }
         else if (tokenchar == '+') 
         {
@@ -240,6 +249,30 @@ void next()
             }
             return;
         }
+		 else if (tokenchar == '*') 
+        {
+            //tokenchar = Mul;
+            token = Mul;
+            return;
+        }
+		
+        else if (tokenchar == '=') // --------------------------------------------- = + - * & && | || != > >= < <=
+        {
+            // parse '==' and '='-------------------------------------------
+            if (*src == '=') 
+            {
+                src ++;
+                //tokenchar = Eq;
+                token = Eq;
+            } 
+            else 
+            {
+                //tokenchar = Assign;
+                token = Assign;
+            }
+            return;
+        }
+        
         else if (tokenchar == '!') 
         {
             // parse '!='// ------------------------------------
@@ -339,12 +372,7 @@ void next()
             token = Mod;
             return;
         }
-        else if (tokenchar == '*') // ------------------------------------
-        {
-            //tokenchar = Mul;
-            token = Mul;
-            return;
-        }
+       
         else if (tokenchar == '[')   // for array?// ------------------------------------
         {
             //tokenchar = Brak;
@@ -539,7 +567,6 @@ int expr()
 	return expr_doAddSub(termOut.value, termOut.location);
 }
 
-
 void program() 
 {
     next();                  // get next tokenchar
@@ -587,23 +614,23 @@ int main()
 
 
 // ---------add keywords to symbol table
-    if (!(symbols = malloc(poolsize))) // save identifiers and keywords. Its point is called "current_id"
+    if (!(symbols = malloc(poolsize))) // save identifiers and keywords. the pointer, "current_id", slides itself to represent a certain identifier/keyword
     {
         printf("could not malloc(%d) for symbol table\n", poolsize);
         return -1;
     }
       memset(symbols, 0, poolsize);
+    //current_id = symbols;no need to initialize the current_id here. next() will do this job
 
-    src = "char else enum if int return sizeof while void main";
-    i = Char;
-    while (i <= While) // we are now in the main-function, the symbol table is still empty.
+    src = " Int Char Struct Void If Else While For Break New Delete Return Extern main";
+    i = Int;
+    while (i <= Extern) // we are now in the main-function, the symbol table is still empty.
     {
         next(); // src will point to a "white space" when next() returns
         // thanks to the "while loop", when *src== white space, next() will continue rather than return
-        current_id[Token] = i++; // for common identifiers, current_id[Token] = Id, while for key words, current_id[Token] = KeyWord
+        current_id[IdOrKey] = i++; // for common identifiers, current_id[Token] = Id, while for key words, current_id[Token] = KeyWord
     }
-    next(); current_id[Token] = Char; // handle void type
-    next(); idmain = current_id; 
+    next(); idmain = current_id; // ??????????
     // when next() is running, current_id will traverse itself until point to a new black space.
     // the following space will be used for identifiers running in user's functions. // keep track of main 
 
@@ -632,7 +659,7 @@ int main()
         return -1;
     }
     src[i] = 0; // add EOF character
-    close(fp);
+    fclose(fp);
 
     line = 1;
     col = 0;
