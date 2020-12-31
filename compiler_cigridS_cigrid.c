@@ -14,11 +14,15 @@
 //precedence climbing
 //check all loop for runtime exceeding problem
 // check in the cigrid concrete syntax for [] and {}
+//  src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
+// to do: token = Keyword
 
 //question:
 //why must '\'' be an escape character??
 
 char *src;  // pointer to source code string;
+char *stringRepo; // store the names of all identifiers and STRINGconstants.// it is likely that the source file might be too long for the src to load it in one time
+char *stringRepoPtr;
 int line, col;             // count how many lines&columns have been parsed
 int poolsize;         // default size of text/data/stack
 
@@ -65,17 +69,17 @@ int maxOne(int a, int b)
     }
     
 }
- 
+
+
+
 void next() 
 {    // when will it "return"? answer: when "while" ends. then, when will the "while" end? answer: (1)it recognizes sth (2)*src == 0, i.e. the end of the article
      // the business about "forced exit because of unknown charactor" is done by GrammarPaser   
-	char *last_pos; //  src is the start pointer of the malloc(). i don't think it is good to let src change such as "src++;
-    int hash;
-
+	
     while (tokenchar = *src)  // this while-loop is used to 1. skep whitespaces 2. report lexing error -- unknown character
-    {
-        ++col;
-		++src;
+    {        
+		src++;
+		col++;
         // parse token here
         if (tokenchar == '\n')  //------------------------- a new line will start
         {
@@ -84,14 +88,15 @@ void next()
         }
         else if ( (tokenchar == 0x09) || (tokenchar == 0x20) || (tokenchar == 0xD) )  // ---------- whitespace
         {
-            ;
+            col++;
         }
         else if (tokenchar == '#')
         {
             // skip macro, because we will not support it
             while (*src != 0 && *src != '\n') 
             {
-                src++;
+                col++;
+				src++;
             }
         }    
         else if (tokenchar == '/') 
@@ -100,23 +105,27 @@ void next()
             {           
                 while (*src != 0 && *src != '\n') 
                 {
-                    ++src;
+                    col++;
+					src++;
                 }
             } 
             else if (*src == '*')// --------------------------------------  multiline comment
             {
             	char endMultiComment = 0;
-            	src++;
+            	col++;
+				src++;
 				while ((*src != 0)   &&  (endMultiComment == 0)) 
                 {
                     if (*src == '*')
                     {
-                    	src++;
+                    	col++;
+						src++;
                     	if (*src == '/')
                     	{
                     		endMultiComment = 1;
 						}
 					}
+					col++;
 					src++;
                 }
 			}
@@ -129,22 +138,26 @@ void next()
         }
 		else if (  (tokenchar >='a'&& tokenchar<='z')  ||  (tokenchar >= 'A' && tokenchar <= 'Z')  ||  (tokenchar == '_')  )  
         { // --------------identifiers or identifiers->keywords
-            last_pos = src - 1; // the address of the first char of the identifier
-            hash = tokenchar;  
+            char *start_pos; 
+            start_pos = src - 1; // the address of the first char of the identifier
+           
+            //hash = tokenchar;  
 
             while ((*src >= 'a' && *src <= 'z') || (*src >= 'A' && *src <= 'Z') || (*src >= '0' && *src <= '9') || (*src == '_')) 
             {
                 //hash = hash * 147 + *src; // each different identifier represents a different value, "hash" ; 
                 // '0'=48  '9'=57 'A'=65 'Z'=90 '_'=95 'a'=97 'z'=122
-                // No!!!! hash only support the identifier whose size is <=9. Otherwise, the hash value will saturate :-(
-                src++;
+                // No!!!! hash only support the identifier whose size is <=9. Otherwise, the hash value will saturate :-(                
+                col++;
+				src++;
             }
-
+            int idLength = src - start_pos;
             // look for existing identifier, i.e. linear search 
+            
             current_id = symbols;  // record the information of each identifier into the library:int * symbols
             while (current_id[IdOrKey])// if current_id[IdOrKey] == 0 then the identifier is a new comer
             {
-                if (   !memcmp((char *)current_id[Name], last_pos, maxOne(current_id[SizeOfId], src - last_pos))   )
+				if (   !memcmp((char *)current_id[Name], start_pos, maxOne(current_id[SizeOfId], idLength))   )// if the identifier is old
                 // int memcmp (const void *s1, const void *s2, size_t n) is used to compare the top n characters of the memories pointed by s1 and s2
                 // maxOne() is used to solve this circumstance: the old existing Ident is "abcde", and the new one is "abc"
                 {
@@ -154,10 +167,17 @@ void next()
                 current_id = current_id + IdSize;
             }
 
-            // store new ID
+            // the ID is a new ID, store it.
+            int j = 0;
+            char* start_posRepo = stringRepoPtr;
+            for (j=0; j<idLength; j++)
+            {
+                *stringRepoPtr = start_pos[j];
+                stringRepoPtr++;
+            }
             token = current_id[IdOrKey] = Ident;          
-            current_id[Name] = (int)last_pos;  // stores the position of the first char of the identifier
-            current_id[SizeOfId] = src - last_pos;// store how many character this identifier has
+            current_id[Name] = (int)start_posRepo;  // stores the position of the first char of the identifier
+            current_id[SizeOfId] = idLength;// store how many character this identifier has
             return;
 
         }   
@@ -170,13 +190,15 @@ void next()
                 while (*src >= '0' && *src <= '9') 
                 {
                     token_val = token_val*10 + *src++ - '0';
+                    col++;
                 }
             } 
             else 
             {
                 if (*src == 'x' || *src == 'X')   //HEX
                 { 
-                    ++src;
+                    col++;
+					src++;
                     int current_SlgDigit= 0;
                     token_val = 0;
                     while ((*src >= '0' && *src <= '9') || (*src >= 'A' && *src <= 'F') || (*src >= 'a' && *src <= 'f')) 
@@ -195,7 +217,8 @@ void next()
                         }
 
                         token_val = token_val*16 + current_SlgDigit;
-                        ++src;
+                        col++;
+						src++;
                     }
                     
                 } 
@@ -205,6 +228,7 @@ void next()
                     while (*src >= '0' && *src <= '7') 
                     {
                         token_val = token_val*8 + *src++ - '0';
+                        col++;
                     }
                 }
             }
@@ -219,6 +243,7 @@ void next()
 			token = CHAR;
 			if (*src == '\\')
 			{
+				col++;
 				src++;
 				if (*src == 'n')
 					{token_val = 10;}
@@ -241,14 +266,15 @@ void next()
             	
 				
 	        src++; // jump to '    
-            if (   (*src == '\'') && (token_val >= 32) && (token_val <= 126)  ) // only the characters between 32~126 are allowed to appear in the ''
+            if (*src == '\'') // only the characters between 32~126 are allowed to appear in the ''
             {       
-                src++;// jump to the next to-be-dealt-with character
+                col++;
+				src++;// jump to the next to-be-dealt-with character
 				return;
             }
             else
             {
-                printf("lexing error: \' should appear at (line %d, col %d) but not", line, col);
+                printf("lexing error at (line %d, col %d: \' problem or illegal char", line, col);
                 exit(-1);
             }
             
@@ -259,11 +285,32 @@ void next()
             char GoOn = 1;
 			while (GoOn)
             {
-                if 
-				
-                
+                if (*src == '\\')
+			    {
+                    col++;
+					src++;
+                    if (*src == 'n')
+                        {;}//10
+                    else if (*src == 't')
+                        {;}//9
+                    else if (*src == '\\')
+                        {;}//92
+                    else if (*src == '\'')
+                        {;}//39
+                    else if (*src == '\"')
+                        {;}//34
+                    else
+                    {
+                        printf("lexing error: illegal escape character at (line %d, col %d) but not", line, col);
+                        exit(-1);
+                    }                                      				
+			    }
+                else if (*src == '\"')
+                {   GoOn = 0;}
+				col++;
+				src++;				                
             }
-			src++;           
+			           
             token = STRING; 
             return;
         }
@@ -272,7 +319,8 @@ void next()
             // parse '+' and '++'// ------------------------------------
             if (*src == '+') 
             {
-                src ++;
+                col++;
+				src++;
                 token = Inc;
             } 
             else 
@@ -286,7 +334,8 @@ void next()
             // parse '-' and '--'// ------------------------------------
             if (*src == '-') 
             {
-                src ++;
+                col++;
+				src++;
                 token = Dec;
             } 
             else 
@@ -306,7 +355,8 @@ void next()
             // parse '==' and '='-------------------------------------------
             if (*src == '=') 
             {
-                src ++;
+                src++;
+                col++;
                 token = Eq;
             } 
             else 
@@ -322,21 +372,25 @@ void next()
             if (*src == '=') 
             {
                 src++;
+                col++;
                 token = Ne;
             }
-            return;
+            token = '!';
+			return;
         }
         else if (tokenchar == '<') 
         {
             // parse '<=', '<<' or '<'// ------------------------------------
             if (*src == '=') 
             {
-                src ++;
+                src++;
+                col++;
                 token = Le;
             } 
             else if (*src == '<')
             {
-                src ++;
+                src++;
+                col++;
                 token = Shl;
             } 
             else 
@@ -350,12 +404,14 @@ void next()
             // parse '>=', '>>' or '>'
             if (*src == '=') 
             {
-                src ++;
+                src++;
+                col++;
                 token = Ge;
             } 
             else if (*src == '>') 
             {
-                src ++;
+                src++;
+                col++;
                 token = Shr;
             } 
             else 
@@ -369,7 +425,8 @@ void next()
             // parse '||' or '|'
             if (*src == '|') 
             {
-                src ++;
+                src++;
+                col++;
                 token = Lor;
             } 
             else 
@@ -383,7 +440,8 @@ void next()
             // parse '&&' and '&'
             if (*src == '&') 
             {
-                src ++;
+                src++;
+                col++;
                 token = Lan;
             } 
             else 
@@ -937,29 +995,35 @@ int main()
     col = 0;
 
 
-  
+// ----------- allocate space for stringRepo
+if (!(stringRepo = malloc(poolsize))) 
+    {
+        printf("could not malloc(%d) for source area\n", poolsize);
+        return -1;
+    }
+    memset(stringRepo, 0, poolsize);
+stringRepoPtr = stringRepo; 
 
 // ---------add keywords to symbol table
     if (!(symbols = malloc(poolsize))) // save identifiers and keywords. the pointer, "current_id", slides itself to represent a certain identifier/keyword
     {
         printf("could not malloc(%d) for symbol table\n", poolsize);
         return -1;
-    }
-      memset(symbols, 0, poolsize);
-    //current_id = symbols;no need to initialize the current_id here. next() will do this job
+    } 
+    memset(symbols, 0, poolsize);
+	//current_id = symbols;//no need to initialize the current_id here. next() will do this job
 
-    src = " Int Char Struct Void If Else While For Break New Delete Return Extern main";
-    i = Int;
-    while (i <= Extern) // we are now in the main-function, the symbol table is still empty.
-    {
-        next(); // src will point to a "white space" when next() returns
-        // thanks to the "while loop", when *src== white space, next() will continue rather than return
-        current_id[IdOrKey] = i++; // for common identifiers, current_id[Token] = Id, while for key words, current_id[Token] = KeyWord
-    }
-    next(); idmain = current_id; // ??????????
-    // when next() is running, current_id will traverse itself until point to a new black space.
-    // the following space will be used for identifiers running in user's functions. // keep track of main 
 
+   src = "int char struct void if else while for break new delete return extern main";
+   current_id = symbols;
+   i = Int;
+   while (i <= Extern) // we are now in the main-function, the symbol table is still empty.
+   {
+       next();      
+       current_id[IdOrKey] = i++; 
+   }
+   next(); idmain = current_id; // ?????????? 
+   // the following space will be used for identifiers running in user's functions. // keep track of main 
 
 
 // ----------start to read source code
@@ -988,7 +1052,7 @@ int main()
     close(fp);
 
     line = 1;
-    col = 0;
+    col = 1;
     //program();  
     scanner(); 
     return 0;
