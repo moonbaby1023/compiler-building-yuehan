@@ -27,7 +27,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+void reallyDoThing(char* material)
+{
+	strcat(material, "abc");
+}
+void addTail(char* src)
+{
+	reallyDoThing(src);
+}
 int main()
 {
 //printf("ascii of 0 is %d\n", '0');
@@ -44,6 +53,12 @@ int main()
 //printf("ascii of \\\' is %d\n", '\'');
 //printf("ascii of \\\" is %d\n", '\"');
 
+
+
+char a[10] = "abcdgz";
+a[0] = 0;
+strcat(a,"1234");
+printf("%s", a);
 
 }
 

@@ -1,5 +1,58 @@
-'A'
-'''
-'"'
-2
-5 6 +
+t[0].left
+
+
+/*
+1 + 2 - 3
+EBinOp(-, EBinOp(+, EInt(1), EInt(2)), EUnOp(-, EInt(3)))
+
+-8 * 10
+EBinOp(*, EUnOp(-, EInt(8)), EInt(10)))
+
+8 + -2 - -8 * 10
+EBinOp(-, EBinOp(+, EInt(8), EUnOp(-, EInt(2))), EBinOp(*, EUnOp(-, EInt(8)), EInt(10)))
+
+8 + -2 - -8 * (9 + 1)
+EBinOp(-, EBinOp(+, EInt(8), EUnOp(-, EInt(2))), EBinOp(*, EUnOp(-, EInt(8)), EBinOp(+, EInt(9), EInt(1))))
+
+y | z & 7
+EBinOp(|, EVar("y"), EBinOp(&, EVar("z"), EInt(7)))
+
+x > y && y < x || z >= y && ((x <= y) == 0)
+EBinOp(||, EBinOp(&&, EBinOp(>, EVar("x"), EVar("y")), EBinOp(<, EVar("y"), EVar("x"))), EBinOp(&&, EBinOp(>=, EVar("z"), EVar("y")), EBinOp(==, EBinOp(<=, EVar("x"), EVar("y")), EInt(0))))
+
+new S2[5]
+ENew(TIdent("S2"), EInt(5)))
+
+new S2*[5]
+ENew(TPoint(TIdent("S2")), EInt(5)))
+
+new S2*[1+2*3]
+ENew(TPoint(TIdent("S2")), EBinOp(+, EInt(1), EBinOp(*, EInt(2), EInt(3))))
+
+t[0].left
+EArrayAccess("t", EInt(0), "left")
+
+//to test: ECall
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
