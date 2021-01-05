@@ -17,7 +17,11 @@
 // a- - - - -b negative sequence valid?
 // Num recognizing: negative to be implemented?
 // remember to initialize the char[]=""
-
+// only if all global defination are correct can the pretty print be output
+//IS IT OK to connect the stmt to the final output directly?
+// expr(toTellSuperior)
+// please use keyword searching for "/////here to do: check if all the parts writing like this are correct//////"
+// when there is no "if" guarantees the token == YOUWANT, "match()" shouldn't be replaced by next()
 
 //question:
 //why must '\'' be an escape character??
@@ -546,6 +550,17 @@ void addMem2record(int insert, int tokenInsert, char isNumInsert)
     nextEmpty++;
 }
 
+void getStrName(char* tmp)
+{
+    char* k = token_str_start;
+    int i = 0;
+    for (i=0; i<token_str_len; i++)
+    {
+        tmp[i] = *k;
+        k++
+    }
+}
+
 void match(int expectedChar)
 {
 	if (token != expectedChar)
@@ -783,15 +798,9 @@ void ty(char* toTellSuperior) // has error report; does next()
     else if (token == Ident)
     {   
         strcat(T, "TIdent(\"");
-
-        char* k = token_str_start;
-        int i = 0;
+        
         char tmp[50]="";
-        for (i=0; i<token_str_len; i++)
-        {
-            tmp[i] = *k;
-            k++;
-        }
+        getStrName(tmp);
         strcat(T, tmp);
 
         strcat(T, "\")");
@@ -821,26 +830,26 @@ void ty(char* toTellSuperior) // has error report; does next()
 
 
 
-void expr(char* toTellSuperior);
-void EE(short p, char* toTellSuperior);
+void expr(char* lcontent);
+void EE(short p, char* lcontent);
 
-void P(char* toTellSuperior) // return string
+void P(char* lcontent) // return string
 {       
     if (token == '-')
     {
-        strcat(toTellSuperior, "EUnOp(-, ");
+        strcat(lcontent, "EUnOp(-, ");
 
         next();
-        P(toTellSuperior);
+        P(lcontent);
         // short pp = tightPrec('-');
-		// EE(pp, toTellSuperior);
+		// EE(pp, lcontent);
 
-        strcat(toTellSuperior, ")");
+        strcat(lcontent, ")");
     }
     else if (token == '(')
     {
         next();
-        EE(0, toTellSuperior);
+        EE(0, lcontent);
         match(')');
     }
     else if (token == Num || token == CHAR || token == STRING)
@@ -848,7 +857,7 @@ void P(char* toTellSuperior) // return string
         if (token == Num)
         {
             
-			strcat(toTellSuperior, "EInt(");
+			strcat(lcontent, "EInt(");
             
             char int2char[20]="";
             char tmp[20];
@@ -867,37 +876,28 @@ void P(char* toTellSuperior) // return string
             {
                 int2char[j] = tmp[n-j-1];
             }            
-            strcat(toTellSuperior, int2char);
+            strcat(lcontent, int2char);
 
-            strcat(toTellSuperior, ")");
+            strcat(lcontent, ")");
 		            
         }
         else if (token == CHAR)
         {
             
-			strcat(toTellSuperior, "EChar(\'");
-            
-            strcat(toTellSuperior, token_Op);
-            
-            strcat(toTellSuperior, "\')");
+			strcat(lcontent, "EChar(\'");            
+            strcat(lcontent, token_Op);           
+            strcat(lcontent, "\')");
            
         }
         else 
         {//token == STRING
             
-            strcat(toTellSuperior, "EString(\"");
+            strcat(lcontent, "EString(\"");
 
-            char* k = token_str_start;
             char tmp[128] = "";// set to 0
-            int i = 0;
-            for(i=0; i<token_str_len; i++)
-            {
-                tmp[0] = *k;
-                strcat(toTellSuperior, tmp);
-                k++;
-            }
+            getStrName(tmp);
 
-            strcat(toTellSuperior, "\")");
+            strcat(lcontent, "\")");
            
         }
         
@@ -907,45 +907,39 @@ void P(char* toTellSuperior) // return string
     else if (token == Ident)
     {
         char tmp[128]="";//important set to 0!!!!
-        char* k = token_str_start;
-        int i = 0;
-        for (i=0; i<token_str_len; i++)
-        {
-            tmp[i] = *k;
-            k++;
-        }
+        getStrName(tmp);
 
         next();
         if (token == '(')
         {
-            strcat(toTellSuperior, "ECall(\"");
-            strcat(toTellSuperior, tmp);
-            strcat(toTellSuperior, "\",{");
+            strcat(lcontent, "ECall(\"");
+            strcat(lcontent, tmp);
+            strcat(lcontent, "\",{");
 
             next();
             if (token !=')')
             {
-                expr(toTellSuperior);
+                expr(lcontent);
                 while (token == ',')
                 {
                     match(',');
-                    strcat(toTellSuperior, " ");
-                    expr(toTellSuperior);
+                    strcat(lcontent, " ");
+                    expr(lcontent);
                 }
             }            
             match(')');
 
-            strcat(toTellSuperior, "})");
+            strcat(lcontent, "})");
         }
         else if (token == '[')
         {
-            strcat(toTellSuperior, "EArrayAccess(\"");
-            strcat(toTellSuperior, tmp);
-            strcat(toTellSuperior, "\",");
+            strcat(lcontent, "EArrayAccess(\"");
+            strcat(lcontent, tmp);
+            strcat(lcontent, "\",");
 
             next();
-            expr(toTellSuperior);
-            strcat(toTellSuperior, ",");
+            expr(lcontent);
+            strcat(lcontent, ",");
 
             match(']');
             if (token == '.')
@@ -954,42 +948,33 @@ void P(char* toTellSuperior) // return string
                 match(Ident);
                 
                 char tmp2[64]="";
-                k = token_str_start;
-                for (i=0; i<token_str_len; i++)
-                {
-                    tmp2[i] = *k;
-                    k++;
-                }
-                strcat(toTellSuperior, "\"");
-                strcat(toTellSuperior, tmp2);
-                strcat(toTellSuperior, "\"");         
+                getStrName(tmp2);
+                strcat(lcontent, "\"");
+                strcat(lcontent, tmp2);
+                strcat(lcontent, "\"");         
             }
 
-            strcat(toTellSuperior, ")");
+            strcat(lcontent, ")");
         }
         else
         {
-            strcat(toTellSuperior, "EVar(\"");           
-            strcat(toTellSuperior, tmp);
-            strcat(toTellSuperior, "\")");
+            strcat(lcontent, "EVar(\"");           
+            strcat(lcontent, tmp);
+            strcat(lcontent, "\")");
         }                       
     }
     else if (token == New)
     {
-        strcat(toTellSuperior, "ENew(");
+        strcat(lcontent, "ENew(");
 
         next();
-        ty(toTellSuperior);// HERE
-        strcat(toTellSuperior, ", ");
+        ty(lcontent);// HERE
+        strcat(lcontent, ", ");
 
         match('[');
-        char result_expr[512]="";
-        expr(result_expr);
-        strcat(toTellSuperior, result_expr);
+        expr(lcontent);
         match(']');
-        strcat(toTellSuperior, ")");
-
-
+        strcat(lcontent, ")");
     }       
     else
     {
@@ -1000,22 +985,24 @@ void P(char* toTellSuperior) // return string
 }
 
 
-void EE(short p, char* toTellSuperior) 
+void EE(short p, char* lcontent) 
 {
-    
-    P(toTellSuperior);   
+    char leftTerm[2048];
+    P(leftTerm);
 
     short r = 10;
     short precedenceRT = prec(token);
     if (precedenceRT == -2)
     {
-		return;
+		strcat(lcontent, leftTerm);
+        return;
 	}
     short typeTokenRT = operatorType(token);
         
 	if (!(  (typeTokenRT==2 || typeTokenRT==3)  &&  (p<=precedenceRT && precedenceRT<=r)   ))
 	{
-		return;
+		strcat(lcontent, leftTerm);
+        return;
 	}	
 	
 	
@@ -1037,16 +1024,16 @@ void EE(short p, char* toTellSuperior)
             strcat(tmp, operatorB);
             strcat(tmp, ", ");
 
-            strcat(tmp, toTellSuperior);
+            strcat(tmp, leftTerm);
             strcat(tmp, ", ");
 
-            char result_EE[512]="";// it is soooooo important to initialize an array to ZERO!
-			EE(tightprecB, result_EE);
-			strcat(tmp, result_EE);
+            char content_EE[512]="";// it is soooooo important to initialize an array to ZERO!
+			EE(tightprecB, content_EE);
+			strcat(tmp, content_EE);
             strcat(tmp, ")");
             
-            toTellSuperior[0] = 0;
-        	strcat(toTellSuperior, tmp);
+            leftTerm[0] = 0;
+        	strcat(leftTerm, tmp);
         }
         else if (typeTokenB == 3)
         {
@@ -1056,81 +1043,134 @@ void EE(short p, char* toTellSuperior)
         r = looseprecB;
         precedenceRT = prec(token);       
     }
+    strcat(lcontent, leftTerm);
 
 }
 
 
-void expr(char* toTellSuperior)
+void expr(char* lcontent)
 {
-    EE(0, toTellSuperior);
+    EE(0, lcontent);
 }
 
-/*
-void params() 
+
+void params(char* lcontent) 
 {
     if (  (token == Void) || (token == Int) || (token == Char) || (token == Ident)  ) 
     {
-        ty();
-        match(Ident);
+        strcat(lcontent, "(");
+        ty(lcontent);//
+        strcat(lcontent, ", \"");
+
+        match(Ident);//
+        char tmp[128] = "";
+        getStrName(tmp);
+        strcat(lcontent, tmp);
+        strcat(lcontent, "\")");
+
         while (token == ',') 
         {
-            match(',');
-            ty();
-            match(Ident);
+            match(',');//
+
+            strcat(lcontent, "(");
+            ty(lcontent);//
+            strcat(lcontent, ", \"");
+
+            match(Ident);//
+            char tmp[128] = "";
+            getStrName(tmp);
+            strcat(lcontent, tmp);
+            strcat(lcontent, "\")");
         }
     }// else do nothing
 }
 
 
-void assignSuffix()
+void assignSuffix(char* varName, char* lcontent)//OK
 {
     if (token == '=')
     {
         next();
-        expr();
+        expr(lcontent);
     }
     else if (token == Inc)
     {
+        strcat(lcontent, "EBinOp(+, EVar(\"");
+        strcat(lcontent, varName);
+        strcat(lcontent, "\"), EInt(1))");
         next();
     }
     else
     {
         match(Dec);
+        strcat(lcontent, "EBinOp(-, EVar(\"");
+        strcat(lcontent, varName);
+        strcat(lcontent, "\"), EInt(1))");
     }
     
 }
 
-void assignSuffix2()
+void assignSuffix2(char* funcName, char* lcontent)// OK
 {
-    if (token == '(') // assign sth by running a function
+    if (token == '(') // assign sth by running a function: SExpr
     {
-        next();
+        strcat(lcontent, "SExpr(ECall(\"");
+        strcat(lcontent, funcName);
+        strcat(lcontent, "\", {");
+
+        next();//
         if (token != ')')
         {
-            expr();
+            expr(lcontent);//
             while (token == ',')
             {
-                next();
-                expr();
+                //HERE HERE
+                next();//
+                strcat(lcontent, " ");
+                expr(lcontent);//
             }
         }
-        match(')');
+        match(')');//
+
+        strcat(lcontent, "}))")
     }
-    else if (token == '[') // assign array
+    else if (token == '[') // assign array: SArrayAssign
     {
-        next();
-        expr();
-        match(']');
+        strcat(lcontent, "SArrayAssign(\"");
+        strcat(lcontent, funcName);
+        strcat(lcontent, "\", ");
+
+        next();//
+        expr(lcontent);//        
+        match(']');//
+        strcat(lcontent, ", ");
+
         if (token == '.')
         {
-            next();
-            match(Ident);
+            next();//
+            if (token == Ident)
+            {
+                char structField[128] = "";
+                getStrName(structField);/////here to do: check if all the parts writing like this are correct//////
+                strcat(lcontent, "\"");
+                strcat(lcontent, structField);
+                strcat(lcontent, "\"");
+            }
+            match(Ident);//
         }
-        assignSuffix();
+        strcat(lcontent, ", ");
+        assignSuffix(funcName, lcontent);//
+        strcat(lcontent, ")");
+
     }
     else // assign identifier
     {
-        assignSuffix();
+        strcat(lcontent, "SVarAssign(\"");
+        strcat(lcontent, funcName);
+        strcat(lcontent, "\", ");
+        assignSuffix(funcName, lcontent);//
+        strcat(lcontent, ")");
+
     }
 }
 
@@ -1140,175 +1180,300 @@ void assign()
 	assignSuffix2();
 }
 
-void varassign()
+void varassign(char* lcontent) //OK
 {
     if (token != Ident)
     {
-        ty();// local variable initialization
-        match(Ident);
-        match('=');
-        expr();          
+        strcat(lcontent, "SVarDef(");
+        ty(lcontent);//
+        strcat(lcontent, ", \"");
+        if (token == Ident)
+        {
+            char tmp[128] = "";
+            getStrName(tmp);            
+        }
+        next();//        
+        strcat(lcontent, tmp);
+        strcat(lcontent, "\", ");
+
+        match('=');//
+        expr(lcontent); //  
+        strcat(lcontent, ")\n");       
     }
     else
     {
-        match(Ident);
+        char ident1[128] = "";
+        getStrName(ident1);
+        next();
+
         if (token == Ident)
         {
-            next();
-            match('=');
-            expr();
+            strcat(lcontent, "TIdent(\"");
+            strcat(lcontent, ident1);
+            strcat(lcontent, "\"), \"");
+            
+            char varName[128] = "";
+            getStrName(varName);
+            strcat(lcontent, varName);
+            strcat(lcontent, "\", ");
+
+            next();//
+            match('=');//
+            expr(lcontent);//
+            strcat(lcontent, ")\n");
         }
         else if (token == '*')
         {
-            next();
-            match(Ident);
-            match('=');
-            expr();
+            strcat(lcontent, "TPoint(TIdent(\"");
+            strcat(lcontent, ident1);
+            strcat(lcontent, "\")), \"");
+
+            next();//
+            if (token == Ident)
+            {
+                char ident2[128] = "";
+                getStrName(ident2);                
+            }
+            strcat(lcontent, ident2);
+            strcat(lcontent, "\", ");
+            
+            match(Ident);//
+            match('=');//
+            expr(lcontent);//
+
+            strcat(lcontent, ")\n");
         }
         else 
         {   
-            assignSuffix2();
+            assignSuffix2(ident1, lcontent);// ident1 hereby is the function name
         }      
     }
 }
 
 
 void stmtElseSuffix();
-void stmt() 
+void stmt(char* lcontent) //OK
 {
     if (token == '{')
     {
-        next();
+        strcat(lcontent, "SScope({");
+        next();//
         while (token != '}') 
-        {
-            stmt();
+        {            
+            stmt(lcontent);//            
         }
-        match('}');    
+        match('}'); //
+        strcat(lcontent, "})\n");
     }
     else if (token == If)
-    {
-        next();
-        match('(');
-        expr();
-        match(')');
-        stmt();
-        stmtElseSuffix();
+    {        
+        next();//
+        match('(');//
+        strcat(lcontent, "SIf(");
+
+        expr(lcontent);//        
+        strcat(lcontent, ",\n");
+        match(')');//
+
+        stmt(lcontent);//
+        strcat(lcontent, ", ");
+
+        stmtElseSuffix(lcontent);//
+        strcat(lcontent, ")\n");
     }
     else if (token == While)
     {
-        next();
-        match('(');
-        expr();
-        match(')');
-        stmt();
+        next();//
+        match('(');//
+        strcat(lcontent, "SWhile(");
+
+        expr(lcontent);//        
+        match(')');//
+        strcat(lcontent, ",\n");
+
+        stmt(lcontent);//
+        strcat(lcontent, ")");
     }
     else if (token == Break)
     {
         next();
         match(';');
+        strcat(lcontent, "SBreak");
     }
     else if (token == Return)
     {
-        next();
+        strcat(lcontent, "SReturn(");
+        
+        next();//
         if (token != ';')
-            {expr();}
-        match(';');
+        {
+            expr(lcontent);//
+        }
+        match(';');//
+
+        strcat(lcontent, ")");
     }
     else if (token == Delete)
     {
-        next();
-        match('[');
-        match(']');
-        match(Ident);
-        match(';');
+        strcat(lcontent, "SDelete(\"");
+        
+        next();//
+        match('[');//
+        match(']');//
+        match(Ident);//
+        char tmp[128] = "";
+        getStrName(tmp);
+        strcat(lcontent, tmp);
+        match(';');//
+
+        strcat(lcontent, "\")");
     }
     else if (token == For)
     {
-        next();
-        match('(');
-        varassign();
-        match(';');
-        expr();
-        match(';');
-        assign();
-        match(')');
-        stmt();
+        strcat(lcontent, "SScope({\n");
+
+        next();//
+        match('(');//
+        varassign(lcontent);// SVarDef int i=0;
+        match(';');//
+
+        strcat(lcontent, "SWhile(");
+        expr(lcontent);// i<10;       
+        match(';');//
+        strcat(lcontent, ",\n");
+
+        strcat(lcontent, "SScope({\n");
+        char forLoopAssign[512] = "";
+        assign(forLoopAssign);//i++
+        match(')');//
+        stmt(lcontent);//
+        strcat(lcontent, forLoopAssign);
+        strcat(lcontent, "\n})");
+
+        strcat(lcontent, "\n})");
     }
     else
     {
-        varassign();
-        match(';');
+        varassign(lcontent);// for SVarDef, SVarAssign, SArrayAssign
+        match(';');//
     }
     
 
 }
-void stmtElseSuffix()
+void stmtElseSuffix(char* lcontent) //OK
 {
     if (token == Else)
     {
         next();
-        stmt();
+        strcat(lcontent, "\n");
+        stmt(lcontent);
     }// else do nothing
 }
 
 
-void globalSuffix2() 
+void globalSuffix2(char* TnTextStr, char* totellSuperior) //OK
 {
     if (token == '(') 
     {
         next();
-        params();
+        strcat(totellSuperior, "GFunDecl(");
+        strcat(totellSuperior, TnTextStr);
+        strcat(totellSuperior, ", {");
+
+        params(totellSuperior);
         match(')');
         match(';');
+
+        strcat(totellSuperior, "})\n\n");
+
+
     }
     else
     {
         match(';');
+        strcat(totellSuperior, "GVarDecl(");
+        strcat(totellSuperior, TnTextStr);
+        strcat(totellSuperior, ")\n\n");
     }
 }
 
-void globalSuffix1() 
+void globalSuffix1(char* TnTextStr, char* totellSuperior) //OK
 {
     if (token == '(') 
     {
-        next();
-        params();
-        match(')');
-        match('{');
-        while (token != '}') 
+        strcat(totellSuperior, "GFunDef(");
+        strcat(totellSuperior, TnTextStr);
+        strcat(totellSuperior, ", ");
+
+        next();//
+        params(totellSuperior);//
+        strcat(totellSuperior, ",\n");
+
+        match(')');//
+        match('{');//
+        strcat(totellSuperior, "SScope({\n");
+
+        while (token != '}') //
         {
-            stmt();//if stmt() eats an unknown token, it will report error
+            char result_stmt[2048] = "";
+            stmt(result_stmt);//if stmt() eats an unknown token, it will report error  IS IT OK to connect the stmt to the final output directly?
+            strcat(totellSuperior, result_stmt);
         }
-        match('}');
+        match('}');//
+
+        strcat(totellSuperior, "})");// tail of SScope
+        strcat(totellSuperior, ")\n\n");// tail of this global
 
     }
     else if (token == '=') 
     {
-        expr();
-        match(';');
+        strcat(totellSuperior, "GVarDef(");
+        strcat(totellSuperior, TnTextStr);
+        strcat(totellSuperior, ", ");
+
+        char result_expr[1024] = "";
+        expr(result_expr);//
+        strcat(totellSuperior, result_expr);
+        match(';');//
+        strcat(totellSuperior, ")\n\n");
     }
 
 }
 
 
-void global() 
+void global(char* totellSuperior) 
 {
     if (token == Extern) 
     {
+        char TnTextStr[512] = "";    
         match(Extern);
-        ty();
+        ty(TnTextStr);
+        strcat(TnTextStr, ", \"");
         match(Ident);
-        globalSuffix2();
-    }//HERE HERE why does the original program use 2 char enum?
+        char tmp[128] = "";
+        getStrName(tmp);
+        strcat(TnTextStr, tmp);
+        strcat(TnTextStr, "\"");
+        
+        globalSuffix2(TnTextStr, totellSuperior);
+    }
     else if (  (token == Void) || (token == Int) || (token == Char) || (token == Ident)  ) 
     {
-        ty() ;
-        match(Ident);
-        globalSuffix1();
+        char TnTextStr[512] = "";
+        ty(TnTextStr);//
+        strcat(TnTextStr, ", \"");
+
+        match(Ident);//
+        char tmp[128] = "";
+        getStrName(tmp);
+        strcat(TnTextStr, tmp);
+        strcat(TnTextStr, "\"");
+
+        globalSuffix1(TnTextStr, totellSuperior);//
     }
     else
     {
-        match(Struct);
+        match(Struct);//HERE HERE 
         match(Ident);
         match('{') ;
         while (  (token == Void) || (token == Int) || (token == Char) || (token == Ident)  )  // 首选开头匹配，如果是nonterminal 才选结尾不匹配
@@ -1328,11 +1493,13 @@ void program()
    next() ;//initialize tokenchar
    while (token > 0) //to avoid conflict against ascii, enum should start from 128
    {
-       global () ;
+       char result_global[2048] = "";
+       global (result_global) ;
+       printf("%s\n\n", result_global);
    }
 }
 
-*/
+
 
 /*void program() 
 {

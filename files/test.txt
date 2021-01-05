@@ -1,7 +1,75 @@
-t[0].left
-
-
 /*
+void pluspluss_minusminus(int x){
+  x++;
+  x--;
+}
+
+GFuncDef(TVoid, "pluspluss_minusminus", {(TInt,"x")},
+  SScope({
+    SVarAssign("x", EBinOp(+, EVar("x"), EInt(1)))
+    SVarAssign("x", EBinOp(-, EVar("x"), EInt(1)))
+  }))
+
+
+
+
+void call_no_args_call_statemant(){
+  empty();
+}
+
+GFuncDef(TVoid, "call_no_args_call_statemant", {},
+  SScope({
+    SExpr(ECall("empty",{}))
+  }))
+
+
+
+  while(x < 10){
+    if(x == 7)
+      break;
+    x = x + 1;      
+  }
+
+    SWhile(EBinOp(<, EVar("x"), EInt(10)),
+      SScope({
+        SIf(EBinOp(==, EVar("x"), EInt(7)),
+          SBreak, )
+        SVarAssign("x", EBinOp(+, EVar("x"), EInt(1)))
+      }))
+
+
+  for(int i=0; i < x; i++){
+    if(i >= y)
+      break;
+  }
+
+    SScope({
+      SVarDef(TInt, "i", EInt(0))
+      SWhile(EBinOp(<, EVar("i"), EVar("x")),
+        SScope({
+          SScope({if语句的首末需要加scope吗？不需要，这里只是因为for后有一个“{}”
+            SIf(EBinOp(>=, EVar("i"), EVar("y")),
+              SBreak, )
+          })
+          SVarAssign("i", EBinOp(+, EVar("i"), EInt(1)))
+        }))
+    })
+
+
+
+  for(int i=0; i < x; i++)
+    x = x + 1;
+
+    SScope({
+      SVarDef(TInt, "i", EInt(0))
+      SWhile(EBinOp(<, EVar("i"), EVar("x")),
+        SScope({
+          SVarAssign("x", EBinOp(+, EVar("x"), EInt(1)))
+          SVarAssign("i", EBinOp(+, EVar("i"), EInt(1)))
+        }))
+    })
+
+
 1 + 2 - 3
 EBinOp(-, EBinOp(+, EInt(1), EInt(2)), EUnOp(-, EInt(3)))
 
@@ -32,7 +100,15 @@ ENew(TPoint(TIdent("S2")), EBinOp(+, EInt(1), EBinOp(*, EInt(2), EInt(3))))
 t[0].left
 EArrayAccess("t", EInt(0), "left")
 
-//to test: ECall
+one_param_return(123)
+ECall("one_param_return",{EInt(123)})
+
+two_params_return(321,x)
+ECall("two_params_return",{EInt(321) EVar("x")})
+
+print_int(t[0].val)
+ECall("print_int",{EArrayAccess("t", EInt(0), "val")})
+
 */
 
 
